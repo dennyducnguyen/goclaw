@@ -71,6 +71,7 @@ goclaw.db-shm
 *.app.bak
 *.exe.bak
 # AI tool config directories (user-specific)
+.agents/
 .gemini/
 .opencode/
 
