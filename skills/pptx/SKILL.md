@@ -46,6 +46,17 @@ python scripts/office/unpack.py presentation.pptx unpacked/
 
 Use when no template or reference presentation is available.
 
+### File Delivery (IMPORTANT)
+
+After creating the `.pptx` file via `exec`, deliver it to the user:
+
+1. **Do NOT** copy/move the file to another location (e.g. `cp file.pptx /.goclaw/...` will be DENIED by safety policy)
+2. Simply call `write_file` with the file path and `deliver=true` (omit `content`):
+```json
+{ "path": "/tmp/presentation.pptx", "deliver": true }
+```
+3. The file will be automatically attached and sent to the user
+
 ---
 
 ## Design Ideas

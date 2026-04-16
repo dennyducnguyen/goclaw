@@ -392,6 +392,18 @@ sections: [{
 - **TOC requires HeadingLevel only** - no custom styles on heading paragraphs
 - **Override built-in styles** - use exact IDs: "Heading1", "Heading2", etc.
 - **Include `outlineLevel`** - required for TOC (0 for H1, 1 for H2, etc.)
+- **NEVER copy files with `cp` to `.goclaw/` paths** - this is blocked by safety policy and will always fail
+
+### File Delivery (IMPORTANT)
+
+After creating the `.docx` file via `exec`, deliver it to the user:
+
+1. **Do NOT** copy/move the file to another location (e.g. `cp file.docx /.goclaw/...` will be DENIED)
+2. Simply call `write_file` with the file path and `deliver=true` (omit `content`):
+```json
+{ "path": "/tmp/bao_gia.docx", "deliver": true }
+```
+3. The file will be automatically attached and sent to the user
 
 ---
 

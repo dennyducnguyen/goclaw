@@ -4,6 +4,19 @@ description: "Use this skill any time a spreadsheet file is the primary input or
 license: Proprietary. LICENSE.txt has complete terms
 ---
 
+# File Delivery (IMPORTANT)
+
+After creating the `.xlsx` file via `exec`, deliver it to the user:
+
+1. **Do NOT** copy/move the file to another location (e.g. `cp file.xlsx /.goclaw/...` will be DENIED by safety policy)
+2. Simply call `write_file` with the file path and `deliver=true` (omit `content`):
+```json
+{ "path": "/tmp/report.xlsx", "deliver": true }
+```
+3. The file will be automatically attached and sent to the user
+
+---
+
 # Requirements for Outputs
 
 ## All Excel files
