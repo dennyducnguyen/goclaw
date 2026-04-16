@@ -55,7 +55,7 @@ python scripts/accept_changes.py input.docx output.docx
 
 ## Creating New Documents
 
-Generate .docx files with JavaScript, then validate. Install: `npm install -g docx`
+Generate .docx files with JavaScript, then validate. The `docx` package is pre-installed globally (NODE_PATH configured). Do NOT run `npm install`.
 
 ### Setup
 ```javascript
@@ -585,6 +585,6 @@ After running `comment.py` (see Step 2), add markers to document.xml. For replie
 ## Dependencies
 
 - **pandoc**: Text extraction
-- **docx**: `npm install -g docx` (new documents)
+- **docx**: Pre-installed globally (do NOT run `npm install`)
 - **LibreOffice**: PDF conversion (`soffice` binary)
 - **Poppler**: `pdftoppm` for images

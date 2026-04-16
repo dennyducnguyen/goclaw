@@ -225,8 +225,10 @@ pdftoppm -jpeg -r 150 -f N -l N output.pdf slide-fixed
 
 ## Dependencies
 
-- `pip install "markitdown[pptx]"` - text extraction
-- `pip install Pillow` - thumbnail grids
-- `npm install -g pptxgenjs` - creating from scratch
-- LibreOffice (`soffice`) - PDF conversion
-- Poppler (`pdftoppm`) - PDF to images
+All dependencies are pre-installed globally. Do NOT run `npm install` or `pip install`.
+
+- `markitdown[pptx]` - text extraction (pre-installed)
+- `Pillow` - thumbnail grids (pre-installed)
+- `pptxgenjs` - creating from scratch (pre-installed globally, NODE_PATH configured)
+- LibreOffice (`soffice`) - PDF conversion (pre-installed)
+- Poppler (`pdftoppm`) - PDF to images (pre-installed)
