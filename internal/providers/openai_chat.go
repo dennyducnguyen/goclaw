@@ -175,6 +175,11 @@ func (p *OpenAIProvider) ChatStream(ctx context.Context, req ChatRequest, onChun
 				"tool", acc.Name, "raw_len", len(acc.rawArgs), "error", err)
 			acc.ParseError = fmt.Sprintf("malformed JSON (%d chars): %v", len(acc.rawArgs), err)
 		}
+		// rawArgs rỗng hoàn toàn (không phải "{}") là dấu hiệu output bị truncated.
+		// Tool hợp lệ không cần args sẽ gửi "{}", không phải chuỗi rỗng.
+		if acc.rawArgs == "" && acc.Name != "" {
+			acc.ParseError = "empty arguments"
+		}
 		acc.Arguments = args
 		if acc.thoughtSig != "" {
 			acc.Metadata = map[string]string{"thought_signature": acc.thoughtSig}

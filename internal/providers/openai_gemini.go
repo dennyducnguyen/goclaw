@@ -35,7 +35,19 @@ func collapseToolCallsWithoutSig(msgs []Message) []Message {
 			}
 		}
 	}
-	if len(collapseIDs) == 0 {
+
+	// Collect ALL valid tool_call IDs from assistant messages that will survive
+	// (not being collapsed). Used to detect orphaned tool results below.
+	validToolCallIDs := make(map[string]bool)
+	for _, m := range msgs {
+		if m.Role == "assistant" && len(m.ToolCalls) > 0 && !collapseIDs[m.ToolCalls[0].ID] {
+			for _, tc := range m.ToolCalls {
+				validToolCallIDs[tc.ID] = true
+			}
+		}
+	}
+
+	if len(collapseIDs) == 0 && len(validToolCallIDs) == 0 {
 		return msgs
 	}
 
@@ -70,8 +82,23 @@ func collapseToolCallsWithoutSig(msgs []Message) []Message {
 		}
 
 		// Skip orphaned tool results whose assistant was already collapsed.
-		if m.Role == "tool" && collapseIDs[m.ToolCallID] {
-			continue
+		// Also handle tool messages mồ côi: tool_call_id không match với bất kỳ
+		// assistant tool_call nào (có thể do parseErr path xóa tool_calls khỏi assistant).
+		// Nếu gửi những tool messages này cho Gemini → function_response.name rỗng → HTTP 400.
+		if m.Role == "tool" && m.ToolCallID != "" {
+			if collapseIDs[m.ToolCallID] {
+				continue
+			}
+			if !validToolCallIDs[m.ToolCallID] {
+				// Fold nội dung orphaned tool message thành user message để giữ context
+				if content := strings.TrimSpace(m.Content); content != "" {
+					result = append(result, Message{
+						Role:    "user",
+						Content: content,
+					})
+				}
+				continue
+			}
 		}
 
 		result = append(result, m)

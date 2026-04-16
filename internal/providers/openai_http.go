@@ -83,6 +83,11 @@ func (p *OpenAIProvider) parseResponse(resp *openAIResponse) *ChatResponse {
 					"tool", tc.Function.Name, "raw_len", len(tc.Function.Arguments), "error", err)
 				parseErr = fmt.Sprintf("malformed JSON (%d chars): %v", len(tc.Function.Arguments), err)
 			}
+			// Args rỗng hoàn toàn (không phải "{}") là dấu hiệu output bị truncated.
+			// Tool hợp lệ không cần args sẽ gửi "{}", không phải chuỗi rỗng.
+			if tc.Function.Arguments == "" && tc.Function.Name != "" {
+				parseErr = "empty arguments"
+			}
 			call := ToolCall{
 				ID:         tc.ID,
 				Name:       strings.TrimSpace(tc.Function.Name),

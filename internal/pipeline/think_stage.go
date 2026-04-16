@@ -73,14 +73,22 @@ func (s *ThinkStage) Execute(ctx context.Context, state *RunState) error {
 	// Text-only truncation (no tool calls) is a valid long answer — deliver it.
 	truncated := resp.FinishReason == "length" && len(resp.ToolCalls) > 0
 	parseErr := !truncated && toolCallsHaveParseErrors(resp.ToolCalls)
-	if truncated || parseErr {
+	// Gemini 3 Flash có thể trả finish_reason="tool_calls" mặc dù output bị truncated,
+	// khiến truncated=false. Detect qua tool calls có empty args (rawArgs rỗng hoàn toàn).
+	emptyArgs := !truncated && !parseErr && toolCallsHaveEmptyArgs(resp.ToolCalls)
+	if truncated || parseErr || emptyArgs {
+		// Xóa tool calls để ToolStage không execute tools bị hỏng.
+		// Nếu không xóa, ToolStage vẫn chạy và tạo orphaned tool result messages
+		// mà không có matching assistant tool_calls → Gemini API reject với
+		// HTTP 400 "function_response.name: Name cannot be empty".
+		resp.ToolCalls = nil
 		state.Think.TruncRetries++
 		if state.Think.TruncRetries >= maxTruncRetries {
 			s.result = AbortRun
 			return nil
 		}
 		hint := "[System] Your output was truncated because it exceeded max_tokens. Your tool call arguments were incomplete. Please retry with shorter content — split large writes into multiple smaller calls."
-		if parseErr {
+		if parseErr || emptyArgs {
 			hint = "[System] One or more tool call arguments were malformed (truncated JSON). Please retry with shorter content."
 		}
 		state.Messages.AppendPending(providers.Message{Role: "assistant", Content: resp.Content})
@@ -152,6 +160,19 @@ func (s *ThinkStage) maybeInjectNudge(state *RunState) {
 func toolCallsHaveParseErrors(calls []providers.ToolCall) bool {
 	for _, tc := range calls {
 		if tc.ParseError != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// toolCallsHaveEmptyArgs returns true if any tool call has zero arguments.
+// Gemini 3 Flash có thể trả finish_reason="tool_calls" mặc dù output bị truncated,
+// khiến tool calls có args rỗng hoàn toàn. Tool hợp lệ không cần args sẽ gửi "{}",
+// nên args rỗng với Name != "" là dấu hiệu truncation.
+func toolCallsHaveEmptyArgs(calls []providers.ToolCall) bool {
+	for _, tc := range calls {
+		if len(tc.Arguments) == 0 && tc.Name != "" && tc.ParseError == "" {
 			return true
 		}
 	}
