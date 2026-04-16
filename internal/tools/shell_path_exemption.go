@@ -23,6 +23,9 @@ func (t *ExecTool) dynamicPathExemptions(ctx context.Context) []string {
 		dirs = append(dirs, teamWorkspace)
 	}
 	if workspace != "" && filepath.Clean(workspace) != filepath.Clean(teamWorkspace) {
+		// Cho phép exec truy cập workspace chính của agent (chứa scripts, output files).
+		// Deny pattern .goclaw/ nhằm bảo vệ config/data, không phải chặn workspace.
+		dirs = append(dirs, workspace)
 		dirs = append(dirs, filepath.Join(workspace, ".uploads"))
 		dirs = append(dirs, filepath.Join(workspace, "uploads"))
 	}

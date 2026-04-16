@@ -127,6 +127,10 @@ func (t *WriteFileTool) Execute(ctx context.Context, args map[string]any) *Resul
 			workspace = t.workspace
 		}
 		allowed := allowedWithTeamWorkspace(ctx, t.allowedPrefixes)
+		// Cho phép /tmp trong deliver-only mode: agents thường tạo file binary
+		// ở /tmp qua exec (Node.js docx, Python openpyxl...), rồi deliver cho user.
+		// An toàn vì mode này chỉ đọc file để gửi, không ghi gì.
+		allowed = append(allowed, "/tmp")
 		resolved, err := resolvePathWithAllowed(path, workspace, effectiveRestrict(ctx, t.restrict), allowed)
 		if err != nil {
 			return ErrorResult(err.Error())
