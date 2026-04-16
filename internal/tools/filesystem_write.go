@@ -76,7 +76,9 @@ func (t *WriteFileTool) Name() string { return "write_file" }
 func (t *WriteFileTool) Description() string {
 	return "Write content to a file, creating directories as needed. " +
 		"IMPORTANT: content longer than ~12000 characters may be truncated by the API. " +
-		"For large files, use the edit tool to build the file in sections, or split into multiple write_file calls with append=true."
+		"For large files, use the edit tool to build the file in sections, or split into multiple write_file calls with append=true. " +
+		"For binary files created by exec (e.g. .xlsx, .docx, .pptx, .pdf via Python), " +
+		"call write_file with just the path and deliver=true (omit content) to deliver the existing file to the user."
 }
 func (t *WriteFileTool) Parameters() map[string]any {
 	return map[string]any{
@@ -88,7 +90,7 @@ func (t *WriteFileTool) Parameters() map[string]any {
 			},
 			"content": map[string]any{
 				"type":        "string",
-				"description": "Content to write",
+				"description": "Content to write. Omit this parameter when delivering a binary file already created by exec (e.g. .xlsx, .docx, .pptx, .pdf) — the file will be delivered without modification.",
 			},
 			"append": map[string]any{
 				"type":        "boolean",
@@ -99,13 +101,14 @@ func (t *WriteFileTool) Parameters() map[string]any {
 				"description": "Deliver this file to the user as an attachment. Defaults to true. Set to false ONLY for intermediate/temporary files the user will never see (e.g. config, cache, temp scripts). For any file the user requested or should receive, keep true (default).",
 			},
 		},
-		"required": []string{"path", "content"},
+		"required": []string{"path"},
 	}
 }
 
 func (t *WriteFileTool) Execute(ctx context.Context, args map[string]any) *Result {
 	path, _ := args["path"].(string)
 	content, _ := args["content"].(string)
+	_, hasContent := args["content"]
 	appendMode, _ := args["append"].(bool)
 	deliver := true
 	if v, ok := args["deliver"].(bool); ok {
@@ -113,6 +116,34 @@ func (t *WriteFileTool) Execute(ctx context.Context, args map[string]any) *Resul
 	}
 	if path == "" {
 		return ErrorResult("path is required")
+	}
+
+	// Chế độ deliver-only: gửi file binary đã tồn tại cho user mà không ghi gì.
+	// Dùng khi agent tạo file qua exec (ví dụ: Python openpyxl, python-docx, python-pptx)
+	// rồi cần delivery file đó cho user qua WebSocket.
+	if !hasContent && deliver {
+		workspace := ToolWorkspaceFromCtx(ctx)
+		if workspace == "" {
+			workspace = t.workspace
+		}
+		allowed := allowedWithTeamWorkspace(ctx, t.allowedPrefixes)
+		resolved, err := resolvePathWithAllowed(path, workspace, effectiveRestrict(ctx, t.restrict), allowed)
+		if err != nil {
+			return ErrorResult(err.Error())
+		}
+		if err := checkDeniedPath(resolved, t.workspace, t.deniedPrefixes); err != nil {
+			return ErrorResult(err.Error())
+		}
+		info, statErr := os.Stat(resolved)
+		if statErr != nil {
+			return ErrorResult(fmt.Sprintf("file not found for delivery: %s", path))
+		}
+		result := SilentResult(fmt.Sprintf("File delivered: %s (%d bytes). File will be automatically delivered to the user — do NOT send it again via message tool.", path, info.Size()))
+		result.Media = []bus.MediaFile{{Path: resolved}}
+		if dm := DeliveredMediaFromCtx(ctx); dm != nil {
+			dm.Mark(resolved)
+		}
+		return result
 	}
 
 	// Group write permission check
