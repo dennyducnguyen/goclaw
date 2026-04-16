@@ -165,7 +165,11 @@ func (h *FilesHandler) handleServe(w http.ResponseWriter, r *http.Request) {
 		sep := string(filepath.Separator)
 		inWorkspace := h.workspace != "" && (strings.HasPrefix(absPath, h.workspace+sep) || absPath == h.workspace)
 		inDataDir := h.dataDir != "" && (strings.HasPrefix(absPath, h.dataDir+sep) || absPath == h.dataDir)
-		if !inWorkspace && !inDataDir {
+		// Cho phép /tmp/ trong ft-signed requests: agent tạo file binary (xlsx, docx, pptx)
+		// qua exec thường lưu ở /tmp, rồi dùng write_file deliver-only mode để gửi cho user.
+		// An toàn vì ft token có TTL ngắn (5 phút) và path-bound HMAC.
+		inTmp := strings.HasPrefix(absPath, "/tmp/")
+		if !inWorkspace && !inDataDir && !inTmp {
 			slog.Warn("security.files_ft_path_denied", "path", absPath, "workspace", h.workspace, "data_dir", h.dataDir)
 			http.NotFound(w, r)
 			return
