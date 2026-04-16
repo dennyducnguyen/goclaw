@@ -78,14 +78,14 @@ func (p *OpenAIProvider) parseResponse(resp *openAIResponse) *ChatResponse {
 		for _, tc := range msg.ToolCalls {
 			args := make(map[string]any)
 			var parseErr string
-			if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil && tc.Function.Arguments != "" {
+			if err := json.Unmarshal([]byte(string(tc.Function.Arguments)), &args); err != nil && string(tc.Function.Arguments) != "" {
 				slog.Warn("openai: failed to parse tool call arguments",
 					"tool", tc.Function.Name, "raw_len", len(tc.Function.Arguments), "error", err)
-				parseErr = fmt.Sprintf("malformed JSON (%d chars): %v", len(tc.Function.Arguments), err)
+				parseErr = fmt.Sprintf("malformed JSON (%d chars): %v", len(string(tc.Function.Arguments)), err)
 			}
 			// Args rỗng hoàn toàn (không phải "{}") là dấu hiệu output bị truncated.
 			// Tool hợp lệ không cần args sẽ gửi "{}", không phải chuỗi rỗng.
-			if tc.Function.Arguments == "" && tc.Function.Name != "" {
+			if string(tc.Function.Arguments) == "" && tc.Function.Name != "" {
 				parseErr = "empty arguments"
 			}
 			call := ToolCall{

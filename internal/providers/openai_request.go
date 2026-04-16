@@ -151,17 +151,7 @@ func (p *OpenAIProvider) buildRequestBody(model string, req ChatRequest, stream 
 				slog.Debug("max_tokens clamped to 4096 for Fireworks non-streaming request", "provider", p.name, "model", model)
 			}
 		}
-		// Thinking models (GPT-5, o-series, Gemini 2.5+/3) cần max_completion_tokens
-		// thay vì max_tokens. Với max_tokens, thinking tokens ăn vào budget
-		// khiến visible output (đặc biệt tool call args) bị truncated.
-		// Gemini 3 Flash qua OpenAI-compat: max_tokens=8192 nhưng output chỉ ~49 tokens
-		// vì model dùng phần lớn cho thinking, không đủ cho tool call arguments.
-		useCompletionTokens := strings.HasPrefix(capabilityModel, "gpt-5") ||
-			strings.HasPrefix(capabilityModel, "o1") ||
-			strings.HasPrefix(capabilityModel, "o3") ||
-			strings.HasPrefix(capabilityModel, "o4") ||
-			supportsThoughtSignature // Gemini 2.5+ / 3 thinking models
-		if useCompletionTokens {
+		if strings.HasPrefix(capabilityModel, "gpt-5") || strings.HasPrefix(capabilityModel, "o1") || strings.HasPrefix(capabilityModel, "o3") || strings.HasPrefix(capabilityModel, "o4") {
 			body["max_completion_tokens"] = v
 		} else {
 			body["max_tokens"] = v

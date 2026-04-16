@@ -149,7 +149,7 @@ func (p *OpenAIProvider) ChatStream(ctx context.Context, req ChatRequest, onChun
 			if tc.Function.Name != "" {
 				acc.Name = strings.TrimSpace(tc.Function.Name)
 			}
-			acc.rawArgs += tc.Function.Arguments
+			acc.rawArgs += string(tc.Function.Arguments)
 			if tc.Function.ThoughtSignature != "" {
 				acc.thoughtSig = tc.Function.ThoughtSignature
 			}
